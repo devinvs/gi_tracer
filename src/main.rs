@@ -1,6 +1,8 @@
+use gi_tracer::world::World;
 use gi_tracer::vector::Vec3;
-use gi_tracer::geometry::{Scene, Object, Color, Sphere, Floor};
+use gi_tracer::geometry::Geometry;
 use gi_tracer::camera::Camera;
+use gi_tracer::material::Color;
 
 use rayon::prelude::*;
 
@@ -28,7 +30,7 @@ fn output_ppm(img: &Vec<Vec3<f32>>, w: usize, h: usize) {
 
 fn main() {
     let cam = Camera::new(
-        Vec3::new(0.3, 0.05, -0.4),
+        Vec3::new(0.0, 0.1, -1.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
         90.0,
@@ -36,23 +38,31 @@ fn main() {
         1.0
     );
 
-    let scene: Scene = vec![
-        Box::new(Sphere {
-            center: Vec3::new(0.0, 0.3, 5.0),
-            radius: 1.0,
-            color: Color::RGB(136, 55, 204)
-        }),
-        Box::new(Sphere {
-            center: Vec3::new(-1.6, -0.2, 8.0),
-            radius: 0.9,
-            color: Color::RGB(70, 191, 128)
-        }),
-        Box::new(Floor::new(Vec3::new(-2.0, 0.0, -2.0),
+    let mut world = World::new();
+    world.add_entity(
+        Geometry::new_sphere(
+            Vec3::new(0.0, 0.0, 5.0),
+            1.0,
+        ),
+        Color::RGB(136, 55, 204)
+    );
+
+    world.add_entity(
+        Geometry::new_sphere(
+            Vec3::new(-1.5, -0.2, 8.0),
+            1.0
+        ),
+        Color::RGB(136, 255, 104)
+    );
+
+    world.add_entity(
+        Geometry::new_floor(
+            Vec3::new(-2.0, -2.0, -2.0),
             2.2,
-            10.0,
-            Color::RGB(89, 76, 40)
-        ))
-    ];
+            10.0
+        ),
+        Color::RGB(89, 76, 40)
+    );
 
     let x_jitter = 1.0 / WIDTH as f32 / 2.0;
     let y_jitter = 1.0 / WIDTH as f32 / 2.0;
@@ -67,8 +77,13 @@ fn main() {
             *p = (0..SAMPLES).map(|_| {
                 let cx = 1.0 - x as f32 / WIDTH as f32 + thread_rng().gen_range(-x_jitter..x_jitter);
                 let cy = 1.0 - y as f32 / HEIGHT as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
+
                 let ray = cam.get_ray(cx, cy);
-                scene.intersect(&ray).unwrap_or(Color::RGB(122, 138, 214))
+                if let Some((i, _)) = world.intersect(&ray) {
+                    world.shade(i)
+                } else {
+                    Color::RGB(122, 138, 214)
+                }
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
         });
 

@@ -1,31 +1,17 @@
 use crate::vector::Vec3;
 
-pub type Point = Vec3<f32>;
-
-pub struct Color;
-impl Color {
-    #[allow(non_snake_case)]
-    pub fn RGB(r: u8, g: u8, b: u8) -> Vec3<f32> {
-        Vec3::new(
-            r as f32 / 255.0,
-            g as f32 / 255.0,
-            b as f32 / 255.0
-        )
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 pub struct Ray {
-    pub origin: Point,
+    pub origin: Vec3<f32>,
     pub dir: Vec3<f32>
 }
 
 impl Ray {
-    pub fn new(origin: Point, dir: Vec3<f32>) -> Self {
+    pub fn new(origin: Vec3<f32>, dir: Vec3<f32>) -> Self {
         Self { origin, dir: dir.normalized() }
     }
 
-    pub fn from_points(a: Point, b: Point) -> Self {
+    pub fn from_points(a: Vec3<f32>, b: Vec3<f32>) -> Self {
         Self {
             origin: a,
             dir: (a-b).normalized()
@@ -33,40 +19,39 @@ impl Ray {
     }
 }
 
-pub trait Object {
-    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>>;
+pub trait Hittable {
+    fn intersect(&self, ray: &Ray) -> Option<f32>;   // (distance, point)
 }
 
 pub struct Sphere {
-    pub center: Vec3<f32>,
-    pub radius: f32,
-    pub color: Vec3<f32>
+    center: Vec3<f32>,
+    radius: f32,
 }
 
-impl Object for Sphere {
-    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
-        let oc = ray.origin - self.center;
-        let b = oc.dot(&ray.dir)*2.0;
-        let c = oc.mag()*oc.mag() - self.radius*self.radius;
-        let discriminant = b*b - 4.0*c;
+impl Hittable for Sphere {
+    fn intersect(&self, ray: &Ray) -> Option<f32> {
+        let oc = ray.origin - self.center;  // Vector from ray origin to circle center
+        let b = oc.dot(&ray.dir);           // cos of Angle between a center collision and the actual direction
+        let c = oc.dot(&oc) - self.radius*self.radius;            // projection of ray onto center collision
+        let h = b*b - c;
 
-        if discriminant <= 0.0 {
+        if h < 0.0 {
             None
         } else {
-            Some(self.color)
+            let h = h.sqrt();
+            Some(-b-h)
         }
     }
 }
 
 pub struct Triangle {
-    pub v0: Vec3<f32>,
-    pub v1: Vec3<f32>,
-    pub v2: Vec3<f32>,
-    pub color: Vec3<f32>
+    v0: Vec3<f32>,
+    v1: Vec3<f32>,
+    v2: Vec3<f32>,
 }
 
-impl Object for Triangle {
-    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
+impl Hittable for Triangle {
+    fn intersect(&self, ray: &Ray) -> Option<f32> {
         let v1v0 = self.v1 - self.v0;
         let v2v0 = self.v2 - self.v0;
         let rov0 = ray.origin - self.v0;
@@ -75,56 +60,68 @@ impl Object for Triangle {
         let d = 1.0 / ray.dir.dot(&n);
         let u = d*(-q).dot(&v2v0);
         let v = d*q.dot(&v1v0);
-        //let t = d*(-n).dot(&rov0);
+        let t = d*(-n).dot(&rov0);
 
-        if u<0.0 || v<0.0 || (u+v)>1.0 {
+        if u<0.0 || v<0.0 || (u+v)>1.0 || t<0.0 {
             None
         } else {
-            Some(self.color)
+            Some(t)
         }
     }
 }
 
-impl Object for Vec<Triangle> {
-    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
-        for t in self {
-            if let Some(color) = t.intersect(&ray) {
-                return Some(color);
-            }
-        }
-
-        None
+impl Hittable for Vec<Triangle> {
+    fn intersect(&self, ray: &Ray) -> Option<f32> {
+        self.iter()
+            .filter_map(|t| t.intersect(&ray))
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
     }
 }
 
-pub struct Floor;
-impl Floor {
-    pub fn new(corner: Vec3<f32>, width: f32, height: f32, color: Vec3<f32>) -> Vec<Triangle> {
-        vec![
+pub enum Geometry {
+    Sphere(Sphere),
+    Triangle(Triangle),
+    TriangleList(Vec<Triangle>)
+}
+
+impl Geometry {
+    pub fn new_sphere(center: Vec3<f32>, radius: f32) -> Self {
+        Self::Sphere(Sphere {
+            center,
+            radius
+        })
+    }
+
+    pub fn new_triangle(v0: Vec3<f32>, v1: Vec3<f32>, v2: Vec3<f32>) -> Self {
+        Self::Triangle(Triangle {
+            v0,
+            v1,
+            v2
+        })
+    }
+
+    pub fn new_floor(corner: Vec3<f32>, width: f32, height: f32) -> Self {
+        Self::TriangleList(vec![
             Triangle {
                 v0: corner,
                 v1: Vec3::new(corner.x+width, corner.y, corner.z),
                 v2: Vec3::new(corner.x, corner.y, corner.z+height),
-                color
             },
             Triangle {
                 v0: Vec3::new(corner.x+width, corner.y, corner.z+height),
                 v1: Vec3::new(corner.x+width, corner.y, corner.z),
                 v2: Vec3::new(corner.x, corner.y, corner.z+height),
-                color
             }
-        ]
+        ])
     }
 }
 
-pub type Scene = Vec<Box<dyn Object + Send + Sync>>;
-impl Object for Scene {
-    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
-        for e in self {
-            if let Some(color) = e.intersect(ray) {
-                return Some(color);
-            }
+impl Hittable for Geometry {
+    fn intersect(&self, ray: &Ray) -> Option<f32> {
+        match self {
+            Geometry::Sphere(s) => s.intersect(&ray),
+            Geometry::Triangle(t) => t.intersect(&ray),
+            Geometry::TriangleList(tl) => tl.intersect(&ray)
         }
-        None
     }
 }
