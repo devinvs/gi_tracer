@@ -4,10 +4,14 @@ use gi_tracer::camera::Camera;
 
 use rayon::prelude::*;
 
-const WIDTH: usize = 1920;
-const HEIGHT: usize = 1080;
+use rand::thread_rng;
+use rand::Rng;
 
-fn output_ppm(img: &Vec<Vec3<u8>>, w: usize, h: usize) {
+const WIDTH: usize = 800;
+const HEIGHT: usize = 800;
+const SAMPLES: usize = 50;
+
+fn output_ppm(img: &Vec<Vec3<f32>>, w: usize, h: usize) {
     // Header
     println!("P3");
     println!("{w} {h}");
@@ -16,8 +20,8 @@ fn output_ppm(img: &Vec<Vec3<u8>>, w: usize, h: usize) {
     // Now print data
     for row in 0..h {
         for col in 0..w {
-            let color = img[row*w+col];
-            println!("{} {} {}", color.x, color.y, color.z);
+            let color = img[row*w+col] * 255.0;
+            println!("{} {} {}", color.x as u8, color.y as u8, color.z as u8);
         }
     }
 }
@@ -36,29 +40,36 @@ fn main() {
         Box::new(Sphere {
             center: Vec3::new(0.0, 0.3, 5.0),
             radius: 1.0,
-            color: Color::new(136, 55, 204)
+            color: Color::RGB(136, 55, 204)
         }),
         Box::new(Sphere {
             center: Vec3::new(-1.6, -0.2, 8.0),
             radius: 0.9,
-            color: Color::new(70, 191, 128)
+            color: Color::RGB(70, 191, 128)
         }),
         Box::new(Floor::new(Vec3::new(-2.0, 0.0, -2.0),
             2.2,
             10.0,
-            Color::new(89, 76, 40)
+            Color::RGB(89, 76, 40)
         ))
     ];
 
-    let mut img = vec![Color::new(0,0,0); WIDTH*HEIGHT];
+    let x_jitter = 1.0 / WIDTH as f32 / 2.0;
+    let y_jitter = 1.0 / WIDTH as f32 / 2.0;
+
+    let mut img = vec![Color::RGB(0,0,0); WIDTH*HEIGHT];
     img.par_iter_mut()
         .enumerate()
         .for_each(|(i, p)| {
             let y = i / WIDTH;
             let x = i % WIDTH;
 
-            let ray = cam.get_ray(1.0-x as f32 / WIDTH as f32, 1.0-y as f32 / HEIGHT as f32);
-            *p = scene.intersect(&ray).unwrap_or(Color::new(122, 138, 214));
+            *p = (0..SAMPLES).map(|_| {
+                let cx = 1.0 - x as f32 / WIDTH as f32 + thread_rng().gen_range(-x_jitter..x_jitter);
+                let cy = 1.0 - y as f32 / HEIGHT as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
+                let ray = cam.get_ray(cx, cy);
+                scene.intersect(&ray).unwrap_or(Color::RGB(122, 138, 214))
+            }).sum::<Vec3<f32>>() / SAMPLES as f32;
         });
 
     output_ppm(&img, WIDTH, HEIGHT);

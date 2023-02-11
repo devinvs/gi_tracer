@@ -1,4 +1,5 @@
-use std::ops::{Add, Sub, Mul, Div, Neg};
+use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign};
+use std::iter::Sum;
 use num::Float;
 use num::Num;
 use num::Signed;
@@ -148,5 +149,25 @@ impl<T: Signed + Copy> Neg for Vec3<T> {
             -self.y,
             -self.z
         )
+    }
+}
+
+impl<T: Num + Copy> AddAssign for Vec3<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x = self.x + rhs.x;
+        self.y = self.y + rhs.y;
+        self.z = self.z + rhs.z;
+    }
+}
+
+impl Sum for Vec3<f32> {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut res = Vec3::new(0.0, 0.0, 0.0);
+
+        for i in iter {
+            res += i;
+        }
+
+        res
     }
 }

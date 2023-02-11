@@ -1,7 +1,18 @@
 use crate::vector::Vec3;
 
-pub type Color = Vec3<u8>;
 pub type Point = Vec3<f32>;
+
+pub struct Color;
+impl Color {
+    #[allow(non_snake_case)]
+    pub fn RGB(r: u8, g: u8, b: u8) -> Vec3<f32> {
+        Vec3::new(
+            r as f32 / 255.0,
+            g as f32 / 255.0,
+            b as f32 / 255.0
+        )
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct Ray {
@@ -23,17 +34,17 @@ impl Ray {
 }
 
 pub trait Object {
-    fn intersect(&self, ray: &Ray) -> Option<Color>;
+    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>>;
 }
 
 pub struct Sphere {
     pub center: Vec3<f32>,
     pub radius: f32,
-    pub color: Color
+    pub color: Vec3<f32>
 }
 
 impl Object for Sphere {
-    fn intersect(&self, ray: &Ray) -> Option<Color> {
+    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
         let oc = ray.origin - self.center;
         let b = oc.dot(&ray.dir)*2.0;
         let c = oc.mag()*oc.mag() - self.radius*self.radius;
@@ -51,11 +62,11 @@ pub struct Triangle {
     pub v0: Vec3<f32>,
     pub v1: Vec3<f32>,
     pub v2: Vec3<f32>,
-    pub color: Color
+    pub color: Vec3<f32>
 }
 
 impl Object for Triangle {
-    fn intersect(&self, ray: &Ray) -> Option<Color> {
+    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
         let v1v0 = self.v1 - self.v0;
         let v2v0 = self.v2 - self.v0;
         let rov0 = ray.origin - self.v0;
@@ -75,7 +86,7 @@ impl Object for Triangle {
 }
 
 impl Object for Vec<Triangle> {
-    fn intersect(&self, ray: &Ray) -> Option<Color> {
+    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
         for t in self {
             if let Some(color) = t.intersect(&ray) {
                 return Some(color);
@@ -88,7 +99,7 @@ impl Object for Vec<Triangle> {
 
 pub struct Floor;
 impl Floor {
-    pub fn new(corner: Vec3<f32>, width: f32, height: f32, color: Color) -> Vec<Triangle> {
+    pub fn new(corner: Vec3<f32>, width: f32, height: f32, color: Vec3<f32>) -> Vec<Triangle> {
         vec![
             Triangle {
                 v0: corner,
@@ -108,7 +119,7 @@ impl Floor {
 
 pub type Scene = Vec<Box<dyn Object + Send + Sync>>;
 impl Object for Scene {
-    fn intersect(&self, ray: &Ray) -> Option<Color> {
+    fn intersect(&self, ray: &Ray) -> Option<Vec3<f32>> {
         for e in self {
             if let Some(color) = e.intersect(ray) {
                 return Some(color);
