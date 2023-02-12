@@ -1,22 +1,52 @@
-use crate::geometry::{Hittable, Geometry, Ray};
+use crate::geometry::{Object, Geometry, Ray};
 use crate::vector::Vec3;
+use crate::material::{Material, Light};
 
+#[derive(Debug)]
 pub struct World {
+    // Component Vectors
     pub geometry: Vec<Geometry>,
-    pub color: Vec<Vec3<f32>>
+    pub material: Vec<Material>,
+    
+    pub lights: Vec<Light>,
 }
 
 impl World {
     pub fn new() -> Self {
         Self {
             geometry: Vec::new(),
-            color: Vec::new()
+            material: Vec::new(),
+            lights: Vec::new()
         }
     }
 
-    pub fn add_entity(&mut self, geometry: Geometry, color: Vec3<f32>) {
+    pub fn add_entity(&mut self, geometry: Geometry, material: Material) {
         self.geometry.push(geometry);
-        self.color.push(color);
+        self.material.push(material);
+    }
+
+    pub fn add_floor(&mut self, corner: Vec3<f32>, width: f32, height: f32, material: Material) {
+        self.add_entity(
+            Geometry::new_triangle(
+                corner,
+                Vec3::new(corner.x+width, corner.y, corner.z),
+                Vec3::new(corner.x, corner.y, corner.z+height),
+            ),
+            material
+        );
+
+        self.add_entity(
+            Geometry::new_triangle(
+                Vec3::new(corner.x+width, corner.y, corner.z+height),
+                Vec3::new(corner.x, corner.y, corner.z+height),
+                Vec3::new(corner.x+width, corner.y, corner.z),
+            ),
+            material
+        );
+    }
+
+    pub fn add_light(&mut self, light: Light) {
+        self.lights.push(light)
     }
 
     pub fn intersect(&self, ray: &Ray) -> Option<(usize, f32)> {
@@ -24,10 +54,27 @@ impl World {
             .enumerate()
             .filter_map(|(i, g)| {
                 g.intersect(ray).map(|d| (i, d))
-            }).min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            }).min_by(|a, b| {
+                let res = a.1.partial_cmp(&b.1);
+                if res.is_none() {
+                    eprintln!("a: {:?} b: {:?}", self.geometry[a.0], self.geometry[b.0]);
+                    eprintln!("ray: {ray:?}");
+                    eprintln!("a: {a:?} b: {b:?}");
+                }
+
+                res.unwrap()
+            })
     }
 
-    pub fn shade(&self, id: usize) -> Vec3<f32> {
-        self.color[id]
+    pub fn shade(&self, id: usize, ray: &Ray, dist: f32) -> Vec3<f32> {
+        let p = ray.origin + ray.dir*dist;
+        let norm = self.geometry[id].normal(p);
+
+        self.material[id].shade(
+            ray,
+            dist,
+            &norm,
+            self
+        )
     }
 }

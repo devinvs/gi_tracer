@@ -25,10 +25,9 @@ impl Camera {
         let n = (look_from-look_at).normalized();
         let u = up.cross(&n).normalized();
         let v = n.cross(&u).normalized();
+        eprintln!("n: {n:?} u: {u:?} v: {v:?}");
 
-        eprintln!("{n:?} {u:?} {v:?}");
-
-        let horizontal = u * focal_length * width;
+        let horizontal = -u * focal_length * width;
         let vertical = v * focal_length * height;
         let lower_left_corner = look_from - horizontal/2.0 - vertical/2.0 - n*focal_length;
 

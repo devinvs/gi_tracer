@@ -42,6 +42,13 @@ impl<T: Float> Vec3<T> {
             self.x * other.y - self.y * other.x
         )
     }
+
+}
+
+impl Vec3<f32> {
+    pub fn reflect(&self, n: &Self) -> Self {
+        *self - *n * self.dot(n) * 2.0
+    }
 }
 
 impl<T: Num> Add for Vec3<T> {
