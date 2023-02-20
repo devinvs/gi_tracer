@@ -22,14 +22,17 @@ impl Camera {
         let width = 2.0*w;
         let height = width / aspect_ratio;
 
+        eprintln!("w: {width} h: {height}");
+
         let n = (look_from-look_at).normalized();
         let u = up.cross(&n).normalized();
         let v = n.cross(&u).normalized();
-        eprintln!("n: {n:?} u: {u:?} v: {v:?}");
 
         let horizontal = -u * focal_length * width;
         let vertical = v * focal_length * height;
         let lower_left_corner = look_from - horizontal/2.0 - vertical/2.0 - n*focal_length;
+
+        eprintln!("h: {} h: {}", horizontal.mag(), vertical.mag());
 
         Self {
             origin: look_from,
@@ -40,7 +43,6 @@ impl Camera {
     }
 
     pub fn get_ray(&self, x: f32, y: f32) -> Ray {
-        //eprintln!("{:?} {:?} {:?}", self.lower_left_corner, self.horizontal, self.vertical);
         Ray::new(
             self.origin,
             self.lower_left_corner + self.horizontal*x + self.vertical*y - self.origin

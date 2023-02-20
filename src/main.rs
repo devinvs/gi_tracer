@@ -45,63 +45,56 @@ fn tone_map(img: &mut Vec<Vec3<f32>>) {
 
 fn main() {
     let cam = Camera::new(
-        Vec3::new(0.0, 1.0, -1.0),
-        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 2.5, -1.0),
+        Vec3::new(0.0, 2.0, 1.0),
         Vec3::new(0.0, 1.0, 0.0),
         120.0,
         WIDTH as f32 / HEIGHT as f32,
-        1.0
+        0.5
     );
 
     let mut world = World::new();
 
+    let mat1 = world.add_material(
+        Material::CookTorrance(Color::RGB(89, 76, 40), 0.8, 0.9, 0.0)
+    );
+
+    let mat2 = world.add_material(
+        Material::CookTorrance(Color::RGB(136, 55, 204), 0.1, 0.06, 0.1)
+    );
+
+    let mat3 = world.add_material(
+        Material::CookTorrance(Color::RGB(136, 255, 104), 0.8, 0.1, 0.2)
+    );
+
     world.add_floor(
-        Vec3::new(-2.0, -1.0, -3.0),
-        2.2,
+        Vec3::new(-3.5, -1.0, -3.0),
+        5.0,
         10.0,
-        Material::CookTorrance(
-            Color::RGB(89, 76, 40),
-            0.8,
-            0.9,
-            0.0
-        )
+        mat1
+    );
+
+    world.add_entity(
+        Geometry::new_sphere(Vec3::new(0.0, 2.0, 1.0), 1.0),
+        mat2
     );
 
     world.add_entity(
         Geometry::new_sphere(
-            Vec3::new(0.0, 0.0, 1.0),
-            1.0,
+            Vec3::new(-1.5, 1.0, 1.5),
+            0.8
         ),
-        Material::CookTorrance(
-            Color::RGB(136, 55, 204),
-            0.1,
-            0.1,
-            0.01
-        )
+        mat3
     );
-
-    world.add_entity(
-        Geometry::new_sphere(
-            Vec3::new(-1.5, -0.2, 2.0),
-            1.0
-        ),
-        Material::CookTorrance(
-            Color::RGB(136, 255, 104),
-            0.8,
-            0.1,
-            0.2
-        )
-    );
-
 
     world.lights.push(Light {
-        pos: Vec3::new(-5.0, 8.0, -1.0),
-        color: Vec3::new(0.2, 0.2, 0.2)
+        pos: Vec3::new(-2.0, 5.0, -2.0),
+        color: Vec3::new(0.5, 0.0, 0.0)
     });
 
     world.lights.push(Light {
-        pos: Vec3::new(5.0, 8.0, -1.0),
-        color: Vec3::new(0.2, 0.2, 0.2)
+        pos: Vec3::new(2.0, 5.0, -2.0),
+        color: Vec3::new(0.0, 0.0, 0.5)
     });
 
     let x_jitter = 1.0 / WIDTH as f32 / 2.0;
@@ -121,7 +114,7 @@ fn main() {
                 let ray = cam.get_ray(cx, cy);
                 world.intersect(&ray)
                     .map(|(i, d)| world.shade(i, &ray, d))
-                    .unwrap_or(Color::RGB(20, 20, 80))
+                    .unwrap_or(Color::RGB(31, 176, 255))
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
         });
 

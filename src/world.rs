@@ -6,9 +6,11 @@ use crate::material::{Material, Light};
 pub struct World {
     // Component Vectors
     pub geometry: Vec<Geometry>,
-    pub material: Vec<Material>,
+    pub material: Vec<usize>,
     
+    // Global resources
     pub lights: Vec<Light>,
+    pub materials: Vec<Material>,
 }
 
 impl World {
@@ -16,16 +18,18 @@ impl World {
         Self {
             geometry: Vec::new(),
             material: Vec::new(),
-            lights: Vec::new()
+
+            lights: Vec::new(),
+            materials: Vec::new()
         }
     }
 
-    pub fn add_entity(&mut self, geometry: Geometry, material: Material) {
+    pub fn add_entity(&mut self, geometry: Geometry, material: usize) {
         self.geometry.push(geometry);
         self.material.push(material);
     }
 
-    pub fn add_floor(&mut self, corner: Vec3<f32>, width: f32, height: f32, material: Material) {
+    pub fn add_floor(&mut self, corner: Vec3<f32>, width: f32, height: f32, material: usize) {
         self.add_entity(
             Geometry::new_triangle(
                 corner,
@@ -49,6 +53,14 @@ impl World {
         self.lights.push(light)
     }
 
+    pub fn add_material(&mut self, material: Material) -> usize {
+        let id = self.materials.len();
+
+        self.materials.push(material);
+
+        id
+    }
+
     pub fn intersect(&self, ray: &Ray) -> Option<(usize, f32)> {
         self.geometry.iter()
             .enumerate()
@@ -70,7 +82,8 @@ impl World {
         let p = ray.origin + ray.dir*dist;
         let norm = self.geometry[id].normal(p);
 
-        self.material[id].shade(
+        let mat_id = self.material[id];
+        self.materials[mat_id].shade(
             ray,
             dist,
             &norm,

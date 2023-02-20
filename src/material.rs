@@ -3,7 +3,6 @@ use crate::geometry::Ray;
 use crate::world::World;
 
 const KA: f32 = 0.9;
-const KE: f32 = 8.0;
 
 pub struct Color;
 impl Color {
@@ -25,7 +24,7 @@ pub struct Light {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Material {
-    Phong(Vec3<f32>, f32, f32),    // color, kd, ks
+    Phong(Vec3<f32>, f32, f32, f32),    // color, kd, ks, ke
     CookTorrance(Vec3<f32>, f32, f32, f32),   // color, f0, roughness, k
 }
 
@@ -38,7 +37,7 @@ impl Material {
         world: &World
     ) -> Vec3<f32> {
         match self {
-            Material::Phong(o_color, kd, ks) => {
+            Material::Phong(o_color, kd, ks, ke) => {
                 // Ambient
                 let mut color = *o_color * KA;
 
@@ -69,7 +68,7 @@ impl Material {
                     let r = (v-l.pos).normalized().reflect(normal);
                     let v = -vin.dir;
                     let spec_angle = r.dot(&v).max(0.0);
-                    let specular = spec_angle.powf(KE);
+                    let specular = spec_angle.powf(*ke);
                     color += l.color * specular * *ks;
                 }
 
