@@ -4,6 +4,7 @@ use crate::world::World;
 
 const KA: f32 = 0.9;
 
+#[derive(Debug, Copy, Clone)]
 pub struct Color;
 impl Color {
     #[allow(non_snake_case)]
@@ -23,9 +24,33 @@ pub struct Light {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum Texture {
+    Solid(Vec3<f32>),
+    Checker(Vec3<f32>, Vec3<f32>)
+}
+
+impl Texture {
+    fn get_color(&self, p: &Vec3<f32>) -> Vec3<f32> {
+        match self {
+            Self::Solid(c) => *c,
+            Self::Checker(a, b) => {
+                let x = (p.x / 0.5).floor() as u32;
+                let z = (p.z / 0.5).floor() as u32;
+
+                if (x+z) % 2 == 0 {
+                    *a
+                } else {
+                    *b
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum Material {
-    Phong(Vec3<f32>, f32, f32, f32),    // color, kd, ks, ke
-    CookTorrance(Vec3<f32>, f32, f32, f32),   // color, f0, roughness, k
+    Phong(Texture, f32, f32, f32),    // color, kd, ks, ke
+    CookTorrance(Texture, f32, f32, f32),   // color, f0, roughness, k
 }
 
 impl Material {
@@ -37,11 +62,13 @@ impl Material {
         world: &World
     ) -> Vec3<f32> {
         match self {
-            Material::Phong(o_color, kd, ks, ke) => {
-                // Ambient
-                let mut color = *o_color * KA;
-
+            Material::Phong(tex, kd, ks, ke) => {
                 let v = vin.origin + vin.dir*dist;
+
+                let o_color = tex.get_color(&v);
+                // Ambient
+                let mut color = o_color * KA;
+
 
                 for l in world.lights.iter() {
                     let s = l.pos-v;
@@ -62,7 +89,7 @@ impl Material {
                     }
 
                     // Diffuse Light
-                    color += l.color * *o_color * s_norm.dot(normal).max(0.0) * *kd;
+                    color += l.color * o_color * s_norm.dot(normal).max(0.0) * *kd;
 
                     // Specular Light
                     let r = (v-l.pos).normalized().reflect(normal);
@@ -74,11 +101,13 @@ impl Material {
 
                 color
             }
-            Material::CookTorrance(o_color, f0, roughness, k) => {
-                // Ambient
-                let mut color = *o_color * KA;
-
+            Material::CookTorrance(tex, f0, roughness, k) => {
                 let v = vin.origin + vin.dir*dist;
+                let o_color = tex.get_color(&v);
+
+                // Ambient
+                let mut color = o_color * KA;
+
 
                 for l in world.lights.iter() {
                     let s = l.pos-v;
@@ -129,7 +158,7 @@ impl Material {
                     let ks = (f*d*g) / (4.0*n_dot_v*n_dot_l);
 
                     // Diffuse Lighting
-                    color += *o_color * l.color * n_dot_l;
+                    color += o_color * l.color * n_dot_l;
 
                     // Specular Highlight
                     color += l.color * n_dot_l * (k + ks * (1.0-k));

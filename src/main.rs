@@ -2,7 +2,7 @@ use gi_tracer::world::World;
 use gi_tracer::vector::Vec3;
 use gi_tracer::geometry::Geometry;
 use gi_tracer::camera::Camera;
-use gi_tracer::material::{Material, Color, Light};
+use gi_tracer::material::{Material, Color, Light, Texture};
 
 use rayon::prelude::*;
 
@@ -56,15 +56,20 @@ fn main() {
     let mut world = World::new();
 
     let mat1 = world.add_material(
-        Material::CookTorrance(Color::RGB(89, 76, 40), 0.8, 0.9, 0.0)
+        Material::CookTorrance(
+            Texture::Checker(
+                Color::RGB(200, 76, 40),
+                Color::RGB(89, 100, 200),
+            )
+            , 0.8, 0.9, 0.0)
     );
 
     let mat2 = world.add_material(
-        Material::CookTorrance(Color::RGB(136, 55, 204), 0.1, 0.06, 0.1)
+        Material::CookTorrance(Texture::Solid(Color::RGB(136, 55, 204)), 0.1, 0.06, 0.1)
     );
 
     let mat3 = world.add_material(
-        Material::CookTorrance(Color::RGB(136, 255, 104), 0.8, 0.1, 0.2)
+        Material::CookTorrance(Texture::Solid(Color::RGB(136, 255, 104)), 0.8, 0.1, 0.2)
     );
 
     world.add_floor(
