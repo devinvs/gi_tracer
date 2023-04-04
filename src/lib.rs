@@ -3,3 +3,6 @@ pub mod geometry;
 pub mod material;
 pub mod world;
 pub mod camera;
+pub mod kdtree;
+pub mod ply;
+pub mod job;

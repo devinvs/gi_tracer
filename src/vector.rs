@@ -4,7 +4,9 @@ use num::Float;
 use num::Num;
 use num::Signed;
 
-#[derive(Debug, Copy, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Vec3<T> {
     pub x: T,
     pub y: T,

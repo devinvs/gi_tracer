@@ -2,7 +2,9 @@ use crate::geometry::{Object, Geometry, Ray};
 use crate::vector::Vec3;
 use crate::material::{Material, Light, Color};
 
-#[derive(Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct World {
     // Component Vectors
     pub geometry: Vec<Geometry>,
@@ -20,7 +22,7 @@ impl World {
             material: Vec::new(),
 
             lights: Vec::new(),
-            materials: Vec::new()
+            materials: Vec::new(),
         }
     }
 

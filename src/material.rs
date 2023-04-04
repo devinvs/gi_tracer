@@ -2,11 +2,13 @@ use crate::vector::Vec3;
 use crate::geometry::Ray;
 use crate::world::World;
 
+use serde::{Serialize, Deserialize};
+
 const KA: f32 = 0.9;
 
 const MAX_RECUR: usize = 7;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Color;
 impl Color {
     #[allow(non_snake_case)]
@@ -19,13 +21,13 @@ impl Color {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Light {
     pub pos: Vec3<f32>,
     pub color: Vec3<f32>
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Texture {
     Solid(Vec3<f32>),
     Checker(Vec3<f32>, Vec3<f32>)
@@ -51,7 +53,7 @@ impl Texture {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Material {
     Phong(Texture, f32, f32, f32, f32, f32),    // color, kd, ks, ke, kr, kt
     CookTorrance(Texture, f32, f32, f32),   // color, f0, roughness, k

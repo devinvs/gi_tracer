@@ -1,6 +1,8 @@
 use crate::vector::Vec3;
 
-#[derive(Debug, Copy, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Ray {
     pub origin: Vec3<f32>,
     pub dir: Vec3<f32>
@@ -24,7 +26,7 @@ pub trait Object {
     fn normal(&self, point: Vec3<f32>) -> Vec3<f32>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Sphere {
     center: Vec3<f32>,
     radius: f32,
@@ -51,7 +53,7 @@ impl Object for Sphere {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Triangle {
     v0: Vec3<f32>,
     v1: Vec3<f32>,
@@ -87,7 +89,7 @@ impl Object for Triangle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Geometry {
     Sphere(Sphere),
     Triangle(Triangle),
