@@ -1,6 +1,6 @@
 use crate::geometry::{Object, Geometry, Ray};
 use crate::vector::Vec3;
-use crate::material::{Material, Light};
+use crate::material::{Material, Light, Color};
 
 #[derive(Debug)]
 pub struct World {
@@ -87,7 +87,14 @@ impl World {
             ray,
             dist,
             &norm,
-            self
+            self,
+            0
         )
+    }
+
+    pub fn fire(&self, ray: &Ray) -> Vec3<f32> {
+        self.intersect(&ray)
+            .map(|(i, d)| self.shade(i, &ray, d))
+            .unwrap_or(Color::RGB(31, 176, 255))
     }
 }

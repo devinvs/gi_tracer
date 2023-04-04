@@ -4,6 +4,8 @@ use crate::world::World;
 
 const KA: f32 = 0.9;
 
+const MAX_RECUR: usize = 7;
+
 #[derive(Debug, Copy, Clone)]
 pub struct Color;
 impl Color {
@@ -34,13 +36,15 @@ impl Texture {
         match self {
             Self::Solid(c) => *c,
             Self::Checker(a, b) => {
-                let x = (p.x / 0.5).floor() as u32;
-                let z = (p.z / 0.5).floor() as u32;
+                let x = (p.x / 0.5).floor() as i32;
+                let z = (p.z / 0.5).floor() as i32;
 
-                if (x+z) % 2 == 0 {
-                    *a
-                } else {
-                    *b
+                match ((x%2).abs(), (z%2).abs()) {
+                    (0, 0) => *b,
+                    (0, 1) => *a,
+                    (1, 0) => *a,
+                    (1, 1) => *b,
+                    _ => unreachable!()
                 }
             }
         }
@@ -49,7 +53,7 @@ impl Texture {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Material {
-    Phong(Texture, f32, f32, f32),    // color, kd, ks, ke
+    Phong(Texture, f32, f32, f32, f32, f32),    // color, kd, ks, ke, kr, kt
     CookTorrance(Texture, f32, f32, f32),   // color, f0, roughness, k
 }
 
@@ -59,10 +63,11 @@ impl Material {
         vin: &Ray,
         dist: f32,
         normal: &Vec3<f32>,
-        world: &World
+        world: &World,
+        depth: usize
     ) -> Vec3<f32> {
         match self {
-            Material::Phong(tex, kd, ks, ke) => {
+            Material::Phong(tex, kd, ks, ke, kr, kt) => {
                 let v = vin.origin + vin.dir*dist;
 
                 let o_color = tex.get_color(&v);
@@ -98,6 +103,26 @@ impl Material {
                     let specular = spec_angle.powf(*ke);
                     color += l.color * specular * *ks;
                 }
+
+                // If at max depth just return local illumination color
+                if depth == MAX_RECUR {
+                    return color;
+                }
+
+                // Now apply reflection and transmission
+                if *kr > 0.0 {
+                    let r = Ray::new(
+                        v,
+                        vin.dir.reflect(normal)
+                    );
+
+                    color += world.fire(&r) * *kr;
+                }
+
+                if *kt > 0.0 {
+                    // TODO
+                }
+
 
                 color
             }

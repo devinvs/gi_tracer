@@ -56,21 +56,25 @@ fn main() {
     let mut world = World::new();
 
     let mat1 = world.add_material(
-        Material::CookTorrance(
+        Material::Phong(
             Texture::Checker(
-                Color::RGB(200, 76, 40),
-                Color::RGB(89, 100, 200),
+                Color::RGB(255, 0, 0),
+                Color::RGB(0, 0, 255),
             )
-            , 0.8, 0.9, 0.0)
+            , 0.8, 0.9, 0.0, 0.0, 0.0)
     );
 
+    /*
     let mat2 = world.add_material(
         Material::CookTorrance(Texture::Solid(Color::RGB(136, 55, 204)), 0.1, 0.06, 0.1)
     );
 
     let mat3 = world.add_material(
         Material::CookTorrance(Texture::Solid(Color::RGB(136, 255, 104)), 0.8, 0.1, 0.2)
-    );
+    );*/
+
+    let mat2 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.0, 0.0));
+    let mat3 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.95, 0.0));
 
     world.add_floor(
         Vec3::new(-3.5, -1.0, -3.0),
@@ -117,9 +121,7 @@ fn main() {
                 let cy = 1.0 - y as f32 / HEIGHT as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
 
                 let ray = cam.get_ray(cx, cy);
-                world.intersect(&ray)
-                    .map(|(i, d)| world.shade(i, &ray, d))
-                    .unwrap_or(Color::RGB(31, 176, 255))
+                world.fire(&ray)
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
         });
 
