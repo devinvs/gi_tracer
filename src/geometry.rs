@@ -145,7 +145,16 @@ impl Geometry {
     }
 
     pub fn right_of(&self, axis: Axis, v: f32) -> bool {
-        !self.left_of(axis, v)
+        match self {
+            Geometry::Triangle(Triangle { v0, v1, v2 }) => {
+                match axis {
+                    Axis::X => v0.x >= v || v1.x >= v || v2.x >= v,
+                    Axis::Y => v0.y >= v || v1.y >= v || v2.y >= v,
+                    Axis::Z => v0.z >= v || v1.z >= v || v2.z >= v,
+                }
+            }
+            _ => unimplemented!()
+        }
     }
 }
 
@@ -175,6 +184,7 @@ impl Object for Geometry {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Axis { X, Y, Z }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct AABB {
     pub min: Vec3<f32>,
     pub max: Vec3<f32>
@@ -265,5 +275,58 @@ impl AABB {
                 (l, r, mid)
             }
         }
+    }
+
+    pub fn intersect(&self, ray: &Ray) -> bool {
+        let mut tmin = f32::NEG_INFINITY;
+        let mut tmax = f32::INFINITY;
+
+
+        if ray.dir.x == 0.0 {
+            if ray.origin.x < self.min.x || ray.origin.x > self.max.x {
+                return false;
+            }
+        } else {
+            let t1 = (self.min.x - ray.origin.x) / ray.dir.x;
+            let t2 = (self.max.x - ray.origin.x) / ray.dir.x;
+            let (t1, t2) = if t1 > t2 { (t2, t1) } else { (t1, t2) };
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        if ray.dir.y == 0.0 {
+            if ray.origin.y < self.min.y || ray.origin.y > self.max.y {
+                return false;
+            }
+        } else {
+            let t1 = (self.min.y - ray.origin.y) / ray.dir.y;
+            let t2 = (self.max.y - ray.origin.y) / ray.dir.y;
+            let (t1, t2) = if t1 > t2 { (t2, t1) } else { (t1, t2) };
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        if ray.dir.z == 0.0 {
+            if ray.origin.z < self.min.z || ray.origin.z > self.max.z {
+                return false;
+            }
+        } else {
+            let t1 = (self.min.z - ray.origin.z) / ray.dir.z;
+            let t2 = (self.max.z - ray.origin.z) / ray.dir.z;
+            let (t1, t2) = if t1 > t2 { (t2, t1) } else { (t1, t2) };
+            tmin = tmin.max(t1);
+            tmax = tmax.min(t2);
+            if tmin > tmax {
+                return false;
+            }
+        }
+
+        true
     }
 }

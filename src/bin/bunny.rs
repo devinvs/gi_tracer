@@ -18,7 +18,7 @@ use std::sync::Mutex;
 
 const WIDTH: usize = 800;
 const HEIGHT: usize = 800;
-const SAMPLES: usize = 5;
+const SAMPLES: usize = 100;
 
 fn output_ppm(img: &Vec<Vec3<f32>>, w: usize, h: usize) {
     // Header
@@ -62,7 +62,7 @@ fn main() {
 
     let mut world = World::new();
 
-    let mat = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.6, 0.3, 12.0, 0.0, 0.0));
+    let mat = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.7, 0.3, 12.0, 0.3, 0.0));
 
     world.lights.push(Light {
         pos: Vec3::new(0.0, 1.0, 2.0),
@@ -79,9 +79,8 @@ fn main() {
 
     // Let's build the KD Tree!!!!!!!!!!!
     world.kdtree = Some(build_kdtree(&world.geometry));
-    eprintln!("{:?}", world.kdtree);
 
-    let bar = Arc::new(Mutex::new(ProgressBar::new((WIDTH*HEIGHT*SAMPLES) as u64)));
+    let bar = Arc::new(Mutex::new(ProgressBar::new((WIDTH*HEIGHT) as u64)));
 
     let x_jitter = 1.0 / WIDTH as f32 / 2.0;
     let y_jitter = 1.0 / WIDTH as f32 / 2.0;

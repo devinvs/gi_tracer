@@ -9,14 +9,27 @@ const NUM_POLYGONS: usize = 3;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum KDNode {
     /// Decision Branch on Axis = f32, id for lef
-    Branch(Axis, f32, Box<KDNode>, Box<KDNode>),
-    Leaf(Vec<usize>)
+    Branch(Axis, f32, AABB, Box<KDNode>, Box<KDNode>),
+    Leaf(AABB, Vec<usize>)
+}
+
+impl KDNode {
+    fn aabb(&self) -> &AABB {
+        match self {
+            KDNode::Branch(_, _, b, _, _) => b,
+            KDNode::Leaf(b, _) => b
+        }
+    }
 }
 
 impl KDNode {
     pub fn intersect(&self, r: &Ray, gs: &Vec<Geometry>) -> Option<(usize, f32)> {
+        if !self.aabb().intersect(r) {
+            return None;
+        }
+
         match self {
-            KDNode::Branch(a, v, left, right) => {
+            KDNode::Branch(a, v, _, left, right) => {
                 let (dist, dir) = match a {
                     Axis::X => (r.origin.x-v, r.dir.x),
                     Axis::Y => (r.origin.y-v, r.dir.y),
@@ -48,7 +61,7 @@ impl KDNode {
                     }
                 }
             }
-            KDNode::Leaf(objs) => {
+            KDNode::Leaf(_, objs) => {
                 objs.iter()
                     .filter_map(|&i| gs[i].intersect(r).map(|d| (i, d)))
                     .min_by(|a, b| {
@@ -66,18 +79,20 @@ pub fn build_kdtree(g: &Vec<Geometry>) -> KDNode {
             |a, b| a.union(b.fit())
         );
 
+    eprintln!("aabb: {aabb:?}");
+
     build_kdtree_h(g.iter().enumerate().collect(), aabb, Axis::X, 0)
 }
 
 fn build_kdtree_h<'a>(g: Vec<(usize, &'a Geometry)>, aabb: AABB, axis: Axis, depth: usize) -> KDNode {
     // If we have reached our max depth return a leaf node containing the rest of the geometry
     if depth >= MAX_DEPTH {
-        return KDNode::Leaf(g.iter().map(|a| a.0).collect());
+        return KDNode::Leaf(aabb, g.iter().map(|a| a.0).collect());
     }
 
     // If there are few enough polygons also just create a leaf node
     if g.len() <= NUM_POLYGONS {
-        return KDNode::Leaf(g.iter().map(|a| a.0).collect());
+        return KDNode::Leaf(aabb, g.iter().map(|a| a.0).collect());
     }
 
     // Now just subdivide by the axis and recur
@@ -95,6 +110,7 @@ fn build_kdtree_h<'a>(g: Vec<(usize, &'a Geometry)>, aabb: AABB, axis: Axis, dep
     KDNode::Branch(
         axis,
         d,
+        aabb,
         Box::new(build_kdtree_h(left, l, new_axis, depth+1)),
         Box::new(build_kdtree_h(right, r, new_axis, depth+1))
     )
