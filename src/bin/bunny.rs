@@ -1,3 +1,4 @@
+use gi_tracer::kdtree::build_kdtree;
 use gi_tracer::world::World;
 use gi_tracer::vector::Vec3;
 use gi_tracer::camera::Camera;
@@ -75,6 +76,10 @@ fn main() {
     for t in load_ply(&fpath) {
         world.add_entity(t, mat)
     }
+
+    // Let's build the KD Tree!!!!!!!!!!!
+    world.kdtree = Some(build_kdtree(&world.geometry));
+    eprintln!("{:?}", world.kdtree);
 
     let bar = Arc::new(Mutex::new(ProgressBar::new((WIDTH*HEIGHT*SAMPLES) as u64)));
 

@@ -110,6 +110,43 @@ impl Geometry {
             v2
         })
     }
+
+    pub fn fit(&self) -> AABB {
+        match self {
+            Geometry::Triangle(Triangle { v0, v1, v2 }) => {
+                let minx = v0.x.min(v1.x).min(v2.x);
+                let miny = v0.y.min(v1.y).min(v2.y);
+                let minz = v0.z.min(v1.z).min(v2.z);
+
+                let maxx = v0.x.max(v1.x).max(v2.x);
+                let maxy = v0.y.max(v1.y).max(v2.y);
+                let maxz = v0.z.max(v1.z).max(v2.z);
+
+                AABB {
+                    min: Vec3::new(minx, miny, minz),
+                    max: Vec3::new(maxx, maxy, maxz)
+                }
+            }
+            _ => unimplemented!()
+        }
+    }
+
+    pub fn left_of(&self, axis: Axis, v: f32) -> bool {
+        match self {
+            Geometry::Triangle(Triangle { v0, v1, v2 }) => {
+                match axis {
+                    Axis::X => v0.x <= v || v1.x <= v || v2.x <= v,
+                    Axis::Y => v0.y <= v || v1.y <= v || v2.y <= v,
+                    Axis::Z => v0.z <= v || v1.z <= v || v2.z <= v,
+                }
+            }
+            _ => unimplemented!()
+        }
+    }
+
+    pub fn right_of(&self, axis: Axis, v: f32) -> bool {
+        !self.left_of(axis, v)
+    }
 }
 
 impl Object for Geometry {
@@ -130,6 +167,103 @@ impl Object for Geometry {
         match self {
             Geometry::Sphere(s) => s.normal(point),
             Geometry::Triangle(t) => t.normal(point)
+        }
+    }
+
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Axis { X, Y, Z }
+
+pub struct AABB {
+    pub min: Vec3<f32>,
+    pub max: Vec3<f32>
+}
+
+impl AABB {
+    pub fn contains(&self, g: &Geometry) -> bool {
+        match g {
+            Geometry::Triangle(Triangle { v0, v1, v2 }) => {
+                if self.contains_point(v0) || self.contains_point(v1) || self.contains_point(v2) {
+                    return true;
+                }
+
+
+
+                false
+            }
+            _ => unimplemented!()
+        }
+    }
+
+    fn contains_point(&self, v: &Vec3<f32>) -> bool {
+        self.min.x <= v.x
+            && self.min.y <= v.y
+            && self.min.z <= v.z
+            && self.max.x >= v.x
+            && self.max.y >= v.y
+            && self.max.z >= v.z
+    }
+
+    pub fn union(self, other: Self) -> Self {
+        Self {
+            min: Vec3::new(
+                self.min.x.min(other.min.x),
+                self.min.y.min(other.min.y),
+                self.min.z.min(other.min.z)
+            ),
+            max: Vec3::new(
+                self.max.x.max(other.max.x),
+                self.max.y.max(other.max.y),
+                self.max.z.max(other.max.z)
+            )
+        }
+    }
+
+    pub fn split(self, axis: Axis) -> (Self, Self, f32) {
+        match axis {
+            Axis::X => {
+                let mid = (self.min.x + self.max.x) / 2.0;
+
+                let l = AABB {
+                    min: self.min,
+                    max: Vec3::new(mid, self.max.y, self.max.z)
+                };
+                let r = AABB {
+                    min: Vec3::new(mid, self.min.y, self.min.z),
+                    max: self.max
+                };
+
+                (l, r, mid)
+            }
+            Axis::Y => {
+                let mid = (self.min.y + self.max.y) / 2.0;
+
+                let l = AABB {
+                    min: self.min,
+                    max: Vec3::new(self.max.x, mid, self.max.z)
+                };
+                let r = AABB {
+                    min: Vec3::new(self.min.x, mid, self.min.z),
+                    max: self.max
+                };
+
+                (l, r, mid)
+            }
+            Axis::Z => {
+                let mid = (self.min.z + self.max.z) / 2.0;
+
+                let l = AABB {
+                    min: self.min,
+                    max: Vec3::new(self.max.x, self.max.y, mid)
+                };
+                let r = AABB {
+                    min: Vec3::new(self.min.x, self.min.y, mid),
+                    max: self.max
+                };
+
+                (l, r, mid)
+            }
         }
     }
 }

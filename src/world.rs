@@ -1,6 +1,7 @@
 use crate::geometry::{Object, Geometry, Ray};
 use crate::vector::Vec3;
 use crate::material::{Material, Light, Color};
+use crate::kdtree::KDNode;
 
 use serde::{Serialize, Deserialize};
 
@@ -9,10 +10,13 @@ pub struct World {
     // Component Vectors
     pub geometry: Vec<Geometry>,
     pub material: Vec<usize>,
-    
+
     // Global resources
     pub lights: Vec<Light>,
     pub materials: Vec<Material>,
+
+    // Indexes
+    pub kdtree: Option<KDNode>
 }
 
 impl World {
@@ -23,6 +27,7 @@ impl World {
 
             lights: Vec::new(),
             materials: Vec::new(),
+            kdtree: None
         }
     }
 
@@ -64,20 +69,25 @@ impl World {
     }
 
     pub fn intersect(&self, ray: &Ray) -> Option<(usize, f32)> {
-        self.geometry.iter()
-            .enumerate()
-            .filter_map(|(i, g)| {
-                g.intersect(ray).map(|d| (i, d))
-            }).min_by(|a, b| {
-                let res = a.1.partial_cmp(&b.1);
-                if res.is_none() {
-                    eprintln!("a: {:?} b: {:?}", self.geometry[a.0], self.geometry[b.0]);
-                    eprintln!("ray: {ray:?}");
-                    eprintln!("a: {a:?} b: {b:?}");
-                }
+        if let Some(kdtree) = self.kdtree.as_ref() {
+            kdtree.intersect(ray, &self.geometry)
+        } else {
+            self.geometry.iter()
+                .enumerate()
+                .filter_map(|(i, g)| {
+                    g.intersect(ray).map(|d| (i, d))
+                }).min_by(|a, b| {
+                    let res = a.1.partial_cmp(&b.1);
+                    if res.is_none() {
+                        eprintln!("a: {:?} b: {:?}", self.geometry[a.0], self.geometry[b.0]);
+                        eprintln!("ray: {ray:?}");
+                        eprintln!("a: {a:?} b: {b:?}");
+                    }
 
-                res.unwrap()
-            })
+                    res.unwrap()
+                })
+
+            }
     }
 
     pub fn shade(&self, id: usize, ray: &Ray, dist: f32) -> Vec3<f32> {
