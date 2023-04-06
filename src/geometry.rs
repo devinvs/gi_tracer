@@ -49,7 +49,7 @@ impl Object for Sphere {
     }
 
     fn normal(&self, point: Vec3<f32>) -> Vec3<f32> {
-        (point-self.center).normalized()
+        -(point-self.center).normalized()
     }
 }
 
@@ -85,7 +85,7 @@ impl Object for Triangle {
     }
 
     fn normal(&self, _point: Vec3<f32>) -> Vec3<f32> {
-        (self.v2-self.v0).cross(&(self.v1-self.v0)).normalized()
+        -(self.v2-self.v0).cross(&(self.v1-self.v0)).normalized()
     }
 }
 
@@ -127,7 +127,21 @@ impl Geometry {
                     max: Vec3::new(maxx, maxy, maxz)
                 }
             }
-            _ => unimplemented!()
+            Geometry::Sphere(Sphere { center, radius }) => {
+                let mut min = center.clone();
+                let mut max = center.clone();
+
+                let r2 = radius.powi(2);
+                min.x -= r2;
+                min.y -= r2;
+                min.z -= r2;
+
+                max.x += r2;
+                max.y += r2;
+                max.z += r2;
+
+                AABB { min, max }
+            }
         }
     }
 
@@ -140,7 +154,15 @@ impl Geometry {
                     Axis::Z => v0.z <= v || v1.z <= v || v2.z <= v,
                 }
             }
-            _ => unimplemented!()
+            Geometry::Sphere(Sphere { center, radius }) => {
+                let r2 = radius.powi(2);
+
+                match axis {
+                    Axis::X => center.x-r2 <= v,
+                    Axis::Y => center.y-r2 <= v,
+                    Axis::Z => center.z-r2 <= v
+                }
+            }
         }
     }
 
@@ -153,7 +175,15 @@ impl Geometry {
                     Axis::Z => v0.z >= v || v1.z >= v || v2.z >= v,
                 }
             }
-            _ => unimplemented!()
+            Geometry::Sphere(Sphere { center, radius }) => {
+                let r2 = radius.powi(2);
+
+                match axis {
+                    Axis::X => center.x+r2 >= v,
+                    Axis::Y => center.y+r2 >= v,
+                    Axis::Z => center.z+r2 >= v
+                }
+            }
         }
     }
 }
@@ -191,30 +221,6 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn contains(&self, g: &Geometry) -> bool {
-        match g {
-            Geometry::Triangle(Triangle { v0, v1, v2 }) => {
-                if self.contains_point(v0) || self.contains_point(v1) || self.contains_point(v2) {
-                    return true;
-                }
-
-
-
-                false
-            }
-            _ => unimplemented!()
-        }
-    }
-
-    fn contains_point(&self, v: &Vec3<f32>) -> bool {
-        self.min.x <= v.x
-            && self.min.y <= v.y
-            && self.min.z <= v.z
-            && self.max.x >= v.x
-            && self.max.y >= v.y
-            && self.max.z >= v.z
-    }
-
     pub fn union(self, other: Self) -> Self {
         Self {
             min: Vec3::new(

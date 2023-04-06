@@ -40,8 +40,8 @@ impl World {
         self.add_entity(
             Geometry::new_triangle(
                 corner,
-                Vec3::new(corner.x+width, corner.y, corner.z),
                 Vec3::new(corner.x, corner.y, corner.z+height),
+                Vec3::new(corner.x+width, corner.y, corner.z),
             ),
             material
         );
@@ -49,8 +49,8 @@ impl World {
         self.add_entity(
             Geometry::new_triangle(
                 Vec3::new(corner.x+width, corner.y, corner.z+height),
-                Vec3::new(corner.x, corner.y, corner.z+height),
                 Vec3::new(corner.x+width, corner.y, corner.z),
+                Vec3::new(corner.x, corner.y, corner.z+height),
             ),
             material
         );

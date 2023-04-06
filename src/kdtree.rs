@@ -4,7 +4,7 @@ use crate::vector::Vec3;
 use serde::{Serialize, Deserialize};
 
 const MAX_DEPTH: usize = 20;
-const NUM_POLYGONS: usize = 3;
+const NUM_POLYGONS: usize = 1;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum KDNode {
@@ -52,9 +52,9 @@ impl KDNode {
                     }
                     // Check right and then left
                     (false, true) => {
-                        let res = left.intersect(r, gs);
+                        let res = right.intersect(r, gs);
                         if res.is_none() {
-                            right.intersect(r, gs)
+                            left.intersect(r, gs)
                         } else {
                             res
                         }
@@ -79,8 +79,6 @@ pub fn build_kdtree(g: &Vec<Geometry>) -> KDNode {
             |a, b| a.union(b.fit())
         );
 
-    eprintln!("aabb: {aabb:?}");
-
     build_kdtree_h(g.iter().enumerate().collect(), aabb, Axis::X, 0)
 }
 
@@ -98,8 +96,13 @@ fn build_kdtree_h<'a>(g: Vec<(usize, &'a Geometry)>, aabb: AABB, axis: Axis, dep
     // Now just subdivide by the axis and recur
     let (l, r, d) = aabb.split(axis);
 
-    let left = g.iter().filter(|(_, g)| g.left_of(axis, d)).map(|a| *a).collect();
-    let right = g.iter().filter(|(_, g)| g.right_of(axis, d)).map(|a| *a).collect();
+    let left: Vec<_> = g.iter().filter(|(_, g)| g.left_of(axis, d)).map(|a| *a).collect();
+    let right: Vec<_> = g.iter().filter(|(_, g)| g.right_of(axis, d)).map(|a| *a).collect();
+
+    // If right and left have the same number as the parent just return a leaf node, don't recur
+    if left.len() == right.len() && left.len() == g.len() {
+        return KDNode::Leaf(aabb, g.iter().map(|a| a.0).collect());
+    }
 
     let new_axis = match axis {
         Axis::X => Axis::Y,

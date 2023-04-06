@@ -3,11 +3,16 @@ use gi_tracer::vector::Vec3;
 use gi_tracer::geometry::Geometry;
 use gi_tracer::camera::Camera;
 use gi_tracer::material::{Material, Color, Light, Texture};
+use gi_tracer::kdtree::build_kdtree;
 
 use rayon::prelude::*;
 
 use rand::thread_rng;
 use rand::Rng;
+
+use indicatif::ProgressBar;
+
+use std::sync::{Arc, Mutex};
 
 const WIDTH: usize = 800;
 const HEIGHT: usize = 800;
@@ -64,15 +69,6 @@ fn main() {
             , 0.8, 0.9, 0.0, 0.0, 0.0)
     );
 
-    /*
-    let mat2 = world.add_material(
-        Material::CookTorrance(Texture::Solid(Color::RGB(136, 55, 204)), 0.1, 0.06, 0.1)
-    );
-
-    let mat3 = world.add_material(
-        Material::CookTorrance(Texture::Solid(Color::RGB(136, 255, 104)), 0.8, 0.1, 0.2)
-    );*/
-
     let mat2 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.0, 0.0));
     let mat3 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.95, 0.0));
 
@@ -101,13 +97,12 @@ fn main() {
         color: Vec3::new(0.5, 0.0, 0.0)
     });
 
-    world.lights.push(Light {
-        pos: Vec3::new(2.0, 5.0, -2.0),
-        color: Vec3::new(0.0, 0.0, 0.5)
-    });
+    world.kdtree = Some(build_kdtree(&world.geometry));
 
     let x_jitter = 1.0 / WIDTH as f32 / 2.0;
     let y_jitter = 1.0 / WIDTH as f32 / 2.0;
+
+    let bar = Arc::new(Mutex::new(ProgressBar::new((WIDTH*HEIGHT) as u64)));
 
     let mut img = vec![Color::RGB(0,0,0); WIDTH*HEIGHT];
     img.par_iter_mut()
@@ -123,6 +118,10 @@ fn main() {
                 let ray = cam.get_ray(cx, cy);
                 world.fire(&ray)
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
+
+            if i%10 == 0 {
+                bar.lock().unwrap().inc(10);
+            }
         });
 
     tone_map(&mut img);

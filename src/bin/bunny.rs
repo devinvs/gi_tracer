@@ -4,6 +4,7 @@ use gi_tracer::vector::Vec3;
 use gi_tracer::camera::Camera;
 use gi_tracer::material::{Material, Color, Light, Texture};
 use gi_tracer::ply::load_ply;
+use gi_tracer::geometry::Geometry;
 
 use rayon::prelude::*;
 
@@ -15,6 +16,7 @@ use indicatif::ProgressBar;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use std::time::Instant;
 
 const WIDTH: usize = 800;
 const HEIGHT: usize = 800;
@@ -52,8 +54,8 @@ fn tone_map(img: &mut Vec<Vec3<f32>>) {
 
 fn main() {
     let cam = Camera::new(
-        Vec3::new(0.0, 0.0, 0.2),
-        Vec3::new(0.0, 0.1, 0.0),
+        Vec3::new(0.0, 0.1, 0.2),
+        Vec3::new(0.0, 0.05, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
         120.0,
         WIDTH as f32 / HEIGHT as f32,
@@ -62,7 +64,16 @@ fn main() {
 
     let mut world = World::new();
 
-    let mat = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.7, 0.3, 12.0, 0.3, 0.0));
+    let mat = world.add_material(Material::Phong(
+            Texture::Solid(Color::RGB(200, 76, 40)),
+            0.7,
+            0.3,
+            12.0,
+            0.0,
+            0.0
+    ));
+    //let mat = world.add_material(Material::Normal);
+    //let mat = world.add_material(Material::Distance);
 
     world.lights.push(Light {
         pos: Vec3::new(0.0, 1.0, 2.0),
@@ -73,12 +84,38 @@ fn main() {
     let fpath = std::env::args().nth(1).unwrap();
     eprintln!("Reading ply file: {}", fpath);
 
+
     for t in load_ply(&fpath) {
         world.add_entity(t, mat)
     }
 
+    /*
+    world.add_entity(
+        Geometry::new_triangle(
+            Vec3::new(-0.2, 0.1, 0.0),
+            Vec3::new(-0.1, 0.1, 0.0),
+            Vec3::new(-0.1, 0.2, 0.0)
+        ), mat);
+
+    world.add_entity(
+        Geometry::new_triangle(
+            Vec3::new(-0.05, 0.0, 0.0),
+            Vec3::new(0.1, 0.0, 0.0),
+            Vec3::new(-0.1, 0.1, 0.0)
+        ), mat);
+
+    world.add_entity(
+        Geometry::new_triangle(
+            Vec3::new(0.2, -0.1, 0.0),
+            Vec3::new(0.3, -0.1, 0.0),
+            Vec3::new(0.2, -0.2, 0.0)
+        ), mat);
+    */
+
     // Let's build the KD Tree!!!!!!!!!!!
+    let a = Instant::now();
     world.kdtree = Some(build_kdtree(&world.geometry));
+    eprintln!("kdtree built in {} seconds", a.elapsed().as_secs_f32());
 
     let bar = Arc::new(Mutex::new(ProgressBar::new((WIDTH*HEIGHT) as u64)));
 

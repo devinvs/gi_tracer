@@ -55,6 +55,8 @@ impl Texture {
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Material {
+    Normal,
+    Distance,
     Phong(Texture, f32, f32, f32, f32, f32),    // color, kd, ks, ke, kr, kt
     CookTorrance(Texture, f32, f32, f32),   // color, f0, roughness, k
 }
@@ -69,6 +71,12 @@ impl Material {
         depth: usize
     ) -> Vec3<f32> {
         match self {
+            Material::Normal => {
+                *normal
+            }
+            Material::Distance => {
+                Vec3::new(dist*10.0, 0.0, 0.0)
+            }
             Material::Phong(tex, kd, ks, ke, kr, kt) => {
                 let v = vin.origin + vin.dir*dist;
 
@@ -124,7 +132,6 @@ impl Material {
                 if *kt > 0.0 {
                     // TODO
                 }
-
 
                 color
             }
