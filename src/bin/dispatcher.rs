@@ -67,7 +67,7 @@ fn main() {
 
     let mut world = World::new();
 
-    let mat = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.6, 0.3, 5.1, 0.0, 0.0));
+    let mat = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.6, 0.3, 5.1, 0.0, 0.0, 0.0));
 
     world.lights.push(Light {
         pos: Vec3::new(0.0, 1.0, 2.0),

@@ -6,3 +6,4 @@ pub mod camera;
 pub mod kdtree;
 pub mod ply;
 pub mod job;
+pub mod tone_map;

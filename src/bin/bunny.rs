@@ -4,7 +4,6 @@ use gi_tracer::vector::Vec3;
 use gi_tracer::camera::Camera;
 use gi_tracer::material::{Material, Color, Light, Texture};
 use gi_tracer::ply::load_ply;
-use gi_tracer::geometry::Geometry;
 
 use rayon::prelude::*;
 
@@ -70,6 +69,7 @@ fn main() {
             0.3,
             12.0,
             0.0,
+            0.0,
             0.0
     ));
     //let mat = world.add_material(Material::Normal);
@@ -88,29 +88,6 @@ fn main() {
     for t in load_ply(&fpath) {
         world.add_entity(t, mat)
     }
-
-    /*
-    world.add_entity(
-        Geometry::new_triangle(
-            Vec3::new(-0.2, 0.1, 0.0),
-            Vec3::new(-0.1, 0.1, 0.0),
-            Vec3::new(-0.1, 0.2, 0.0)
-        ), mat);
-
-    world.add_entity(
-        Geometry::new_triangle(
-            Vec3::new(-0.05, 0.0, 0.0),
-            Vec3::new(0.1, 0.0, 0.0),
-            Vec3::new(-0.1, 0.1, 0.0)
-        ), mat);
-
-    world.add_entity(
-        Geometry::new_triangle(
-            Vec3::new(0.2, -0.1, 0.0),
-            Vec3::new(0.3, -0.1, 0.0),
-            Vec3::new(0.2, -0.2, 0.0)
-        ), mat);
-    */
 
     // Let's build the KD Tree!!!!!!!!!!!
     let a = Instant::now();
@@ -134,7 +111,7 @@ fn main() {
                 let cy = 1.0 - y as f32 / HEIGHT as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
 
                 let ray = cam.get_ray(cx, cy);
-                world.fire(&ray)
+                world.fire(&ray, 0)
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
 
             if i % 10 == 0 {

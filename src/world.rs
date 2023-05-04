@@ -90,7 +90,7 @@ impl World {
             }
     }
 
-    pub fn shade(&self, id: usize, ray: &Ray, dist: f32) -> Vec3<f32> {
+    pub fn shade(&self, id: usize, ray: &Ray, dist: f32, depth: usize) -> Vec3<f32> {
         let p = ray.origin + ray.dir*dist;
         let norm = self.geometry[id].normal(p);
 
@@ -100,13 +100,13 @@ impl World {
             dist,
             &norm,
             self,
-            0
+            depth 
         )
     }
 
-    pub fn fire(&self, ray: &Ray) -> Vec3<f32> {
+    pub fn fire(&self, ray: &Ray, depth: usize) -> Vec3<f32> {
         self.intersect(&ray)
-            .map(|(i, d)| self.shade(i, &ray, d))
+            .map(|(i, d)| self.shade(i, &ray, d, depth))
             .unwrap_or(Color::RGB(31, 176, 255))
     }
 }

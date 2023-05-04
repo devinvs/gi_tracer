@@ -4,6 +4,7 @@ use gi_tracer::geometry::Geometry;
 use gi_tracer::camera::Camera;
 use gi_tracer::material::{Material, Color, Light, Texture};
 use gi_tracer::kdtree::build_kdtree;
+use gi_tracer::tone_map::{tone_map, Algorithm};
 
 use rayon::prelude::*;
 
@@ -33,27 +34,12 @@ fn output_ppm(img: &Vec<Vec3<f32>>, w: usize, h: usize) {
     }
 }
 
-fn tone_map(img: &mut Vec<Vec3<f32>>) {
-    let max = img.iter()
-        .map(|v| vec![v.x, v.y, v.z])
-        .flatten()
-        .max_by(|a, b| a.partial_cmp(&b).unwrap())
-        .unwrap();
-
-    img.iter_mut()
-        .for_each(|c| {
-            c.x = c.x / max;
-            c.y = c.y / max;
-            c.z = c.z / max;
-        })
-}
-
 fn main() {
     let cam = Camera::new(
-        Vec3::new(0.0, 2.5, -1.0),
-        Vec3::new(0.0, 2.0, 1.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 1.0),
         Vec3::new(0.0, 1.0, 0.0),
-        120.0,
+        45.0,
         WIDTH as f32 / HEIGHT as f32,
         0.5
     );
@@ -66,35 +52,35 @@ fn main() {
                 Color::RGB(255, 0, 0),
                 Color::RGB(0, 0, 255),
             )
-            , 0.8, 0.9, 0.0, 0.0, 0.0)
+            , 0.8, 0.9, 0.0, 0.0, 0.0, 0.0)
     );
 
-    let mat2 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.0, 0.0));
-    let mat3 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(200, 76, 40)), 0.8, 0.1, 0.1, 0.95, 0.0));
+    let mat2 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(22, 22, 22)), 0.2, 0.7, 12.0, 0.0, 0.9, 0.95));
+    let mat3 = world.add_material(Material::Phong(Texture::Solid(Color::RGB(22, 22, 22)), 0.2, 0.7, 3.0, 0.90, 0.0, 0.0));
 
     world.add_floor(
-        Vec3::new(-3.5, -1.0, -3.0),
-        5.0,
-        10.0,
+        Vec3::new(-5.0, -1.8, -1.0),
+        7.75,
+        56.0,
         mat1
     );
 
     world.add_entity(
-        Geometry::new_sphere(Vec3::new(0.0, 2.0, 1.0), 1.0),
+        Geometry::new_sphere(Vec3::new(0.0, 0.0, 10.0), 1.0),
         mat2
     );
 
     world.add_entity(
         Geometry::new_sphere(
-            Vec3::new(-1.5, 1.0, 1.5),
+            Vec3::new(-1.25, -0.6, 11.5),
             0.8
         ),
         mat3
     );
 
     world.lights.push(Light {
-        pos: Vec3::new(-2.0, 5.0, -2.0),
-        color: Vec3::new(0.5, 0.0, 0.0)
+        pos: Vec3::new(1.0, 8.0, 1.0),
+        color: Vec3::new(0.5, 0.5, 0.5)
     });
 
     world.kdtree = Some(build_kdtree(&world.geometry));
@@ -116,7 +102,7 @@ fn main() {
                 let cy = 1.0 - y as f32 / HEIGHT as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
 
                 let ray = cam.get_ray(cx, cy);
-                world.fire(&ray)
+                world.fire(&ray, 0)
             }).sum::<Vec3<f32>>() / SAMPLES as f32;
 
             if i%10 == 0 {
@@ -124,7 +110,8 @@ fn main() {
             }
         });
 
-    tone_map(&mut img);
+    //tone_map(&mut img, Algorithm::ALM(0.85));
+    tone_map(&mut img, Algorithm::Ward);
     output_ppm(&img, WIDTH, HEIGHT);
 }
 

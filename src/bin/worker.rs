@@ -50,7 +50,7 @@ fn main() {
                     let cy = 1.0 - y as f32 / job.img_height as f32 + thread_rng().gen_range(-y_jitter..y_jitter);
 
                     let ray = job.camera.get_ray(cx, cy);
-                    job.world.fire(&ray)
+                    job.world.fire(&ray, 0)
                 }).sum::<Vec3<f32>>() / job.num_samples as f32;
             });
         

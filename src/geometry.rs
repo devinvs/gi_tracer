@@ -5,18 +5,24 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Ray {
     pub origin: Vec3<f32>,
-    pub dir: Vec3<f32>
+    pub dir: Vec3<f32>,
+    pub inside: bool
 }
 
 impl Ray {
     pub fn new(origin: Vec3<f32>, dir: Vec3<f32>) -> Self {
-        Self { origin, dir: dir.normalized() }
+        Self { origin, dir: dir.normalized(), inside: false }
+    }
+
+    pub fn inside(origin: Vec3<f32>, dir: Vec3<f32>) -> Self {
+        Self { origin, dir: dir.normalized(), inside: true }
     }
 
     pub fn from_points(a: Vec3<f32>, b: Vec3<f32>) -> Self {
         Self {
             origin: a,
-            dir: (a-b).normalized()
+            dir: (a-b).normalized(),
+            inside: false
         }
     }
 }
@@ -43,13 +49,21 @@ impl Object for Sphere {
             None
         } else {
             let h = h.sqrt();
+            let r1 = -b - h;
+            let r2 = -b + h;
 
-            if -b-h < 0.0 { None } else { Some(-b-h) }
+            if r1 < 0.0001 || r2 < 0.0001 {
+                return None
+            } else if r1 < 0.0 {
+                Some(r2)
+            } else {
+                Some(r1)
+            }
         }
     }
 
     fn normal(&self, point: Vec3<f32>) -> Vec3<f32> {
-        -(point-self.center).normalized()
+       -(point-self.center).normalized()
     }
 }
 

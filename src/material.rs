@@ -57,7 +57,7 @@ impl Texture {
 pub enum Material {
     Normal,
     Distance,
-    Phong(Texture, f32, f32, f32, f32, f32),    // color, kd, ks, ke, kr, kt
+    Phong(Texture, f32, f32, f32, f32, f32, f32),    // color, kd, ks, ke, kr, kt, eta
     CookTorrance(Texture, f32, f32, f32),   // color, f0, roughness, k
 }
 
@@ -77,7 +77,7 @@ impl Material {
             Material::Distance => {
                 Vec3::new(dist*10.0, 0.0, 0.0)
             }
-            Material::Phong(tex, kd, ks, ke, kr, kt) => {
+            Material::Phong(tex, kd, ks, ke, kr, kt, eta) => {
                 let v = vin.origin + vin.dir*dist;
 
                 let o_color = tex.get_color(&v);
@@ -126,11 +126,47 @@ impl Material {
                         vin.dir.reflect(normal)
                     );
 
-                    color += world.fire(&r) * *kr;
+                    color += world.fire(&r, depth+1) * *kr;
                 }
 
                 if *kt > 0.0 {
-                    // TODO
+                    let (ni, nt) = if vin.inside {
+                        (*eta, 1.0)
+                    } else {
+                        (1.0, *eta)
+                    };
+                    let nit = ni / nt;
+
+                    let n = -*normal;
+
+                    let neg_d_n = -vin.dir.dot(&n);
+                    let determ = 1.0 + nit.powi(2) * (neg_d_n.powi(2) - 1.0);
+
+                    let r = if determ < 0.0 {
+                        Ray::new(
+                            v,
+                            vin.dir.reflect(normal)
+                        )
+                    } else {
+                        let beta = neg_d_n * nit - determ.sqrt();
+
+                        let t = vin.dir * nit + n * beta;
+                        if vin.inside {
+                            Ray::new(
+                                v,
+                                t
+                            )
+                        } else {
+                            let r = Ray::inside(
+                                v,
+                                t
+                            );
+
+                            r
+                        }
+                    };
+
+                    color += world.fire(&r, depth+1) * *kt;
                 }
 
                 color
